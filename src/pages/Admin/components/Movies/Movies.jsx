@@ -4,6 +4,7 @@ import "./styles.scss";
 import axios from "axios";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
+import AddIcon from '@mui/icons-material/Add';
 import moment from "moment";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
@@ -14,17 +15,48 @@ import { GetMovies } from "../../../../redux/actions/Movies";
 const Movies = () => {
   const dispatch = useDispatch();
   const [query, setQuery] = useSearchParams()
-  const [paginate, setPaginate] = useState({page: query.get('page') ?? 1,limit: 10})
+  const [paginate, setPaginate] = useState({
+    page: query.get('page') ?? 1,
+    limit: 4
+  })
   
-  // const [movieSchedule, setMovieSchedule] = useState({
-  //   loading: false,
-  //   result: {
-  //     data: [],
-  //   },
-  // });
+  const [movieSchedule, setMovieSchedule] = useState({
+    loading: false,
+    results: {
+      data: []
+  }
+  });
+  const [addQuery, setAddQuery] = useState({
+    title: "",
+    sortBy: "",
+    orderBy: "",
+  })
 
-  //add
+
   const [refetch, setRefetch] = useState(false);
+  useEffect(() => {
+    const { title, sortBy, orderBy } = query
+    setMovieSchedule((prevState) => ({
+        ...prevState,
+        loading: true
+    }))
+    axios({
+        method: 'GET',
+        url: `http://localhost:3006/api/v1/movies
+        ${title ? `?title=${title}` : ''}
+        ${sortBy ? `?sortBy=${sortBy}` : ''}
+        ${orderBy ? `&orderBy=${orderBy}` : ''}`,
+    }).then((res) => {
+        // console.log()
+        setMovieSchedule({
+            loading: false,
+            results: res.data
+        })
+    })
+        .catch((err) => {
+            console.log(err)
+        })
+  }, [refetch, query])
   const [formEditData, setFormEditData] = useState({})
   const [formAddData, setFormAddData] = useState({
     title: "",
@@ -41,9 +73,8 @@ const Movies = () => {
   
   useEffect(() => {
     dispatch(GetMovies(paginate))
-  }, [refetch,paginate]);
+  }, [refetch, paginate]);
   const {data, error, loading} = useSelector((state) => state.movies);
-  // console.log(data,'data',error,loading)
   let totalPage = Array(data.totalPage).fill() ?? []
   // if(loading) {
   //   return <div>loading...</div>
@@ -153,9 +184,19 @@ const Movies = () => {
       <hr />
       <div className="top">
         <div className="search">
-          <input type="text" placeholder="Search..." />
+          <input type="text" placeholder="Search..." onChange={(e) => {
+            setAddQuery(prevData => ({
+              ...prevData,
+              title: e.target.value
+            }))
+          }}/>
           <SearchOutlinedIcon className="icon" />
         </div>
+        <select class="select">
+          <option selected className="option">Order By</option>
+          <option value="asc" className="option">ASC</option>
+          <option value="desc" className="option">DESC</option>
+        </select>
       </div>
       <div className="center">
         <button
@@ -208,7 +249,7 @@ const Movies = () => {
         <div aria-label="Page navigation">
           <ul className="pagination">
           <li className="page-item">
-            <a className="page-link" href="#" aria-label="Previous">
+            <a className="page-link" aria-label="Previous">
               <span aria-hidden="true">&laquo;</span>
             </a>
           </li>
@@ -221,7 +262,7 @@ const Movies = () => {
             </li>
             })}
             <li className="page-item">
-              <a className="page-link" href="#" aria-label="Next">
+              <a className="page-link" aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
               </a>
             </li>

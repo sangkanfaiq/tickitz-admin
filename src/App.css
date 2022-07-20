@@ -4,9 +4,15 @@
   box-sizing: border-box;
   /* font-family: 'Poppins', sans-serif; */
   font-family: 'Nunito', sans-serif;
+  /* font-family: 'SF Pro Display', sans-serif; */
+  /* font-family: 'Helvetica Neue', sans-serif; */
 }
 
 /* sweet alert button */
 .btn { 
   margin: 5em 10px 0 10px;
+}
+
+:root {
+  --primary:  #4d2fb9;
 }

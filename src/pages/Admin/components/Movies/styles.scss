@@ -17,7 +17,7 @@
 
     .search {
       display: flex;
-      width: 40%;
+      width: 30%;
       padding: 5px;
       align-items: center;
       justify-content: space-between;
@@ -28,9 +28,26 @@
         padding: 5px;
         outline: none;
         border: none;
-        font-size: 15px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
       }
     }
+
+    select {
+      padding: 10px;
+      outline: none;
+      margin: 0 5px;
+      border: 1px solid lightgray;
+      font-weight: 700;
+      font-size: 14px;
+      color: #666;
+
+      option {
+        font-weight: 700;
+      }
+    }
+    
   }
   .center {
     width: 100%;
@@ -43,14 +60,13 @@
 
     .add-new {
       display: flex;
-      padding: 10px 20px;
+      padding: 10px 15px;
       font-size: 14px;
-      font-weight: 500;
-      font-family: "Poppins", sans-serif;
+      font-weight: 700;
       border-radius: 5px;
       outline: none;
       cursor: pointer;
-      border: 1px solid rgb(185, 185, 185);
+      border: 1px solid rgb(141, 141, 141);
       background: #fff;
       color: #555;
 
@@ -61,12 +77,12 @@
     }
 
     .table {
-      width: 98%;
+      width: 99%;
       margin: auto;
 
-      caption {
-        margin: 10px 0;
-      }
+      // caption {
+      //   margin: 10px 0;
+      // }
       thead {
         color: #fff;
         background: #6439ff;
