@@ -3,105 +3,127 @@ import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import "./styles.scss";
 import axios from "axios";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import StarIcon from '@mui/icons-material/Star';
 import EditIcon from "@mui/icons-material/Edit";
-import AddIcon from '@mui/icons-material/Add';
 import moment from "moment";
 import Swal from "sweetalert2/dist/sweetalert2.js";
 import "sweetalert2/src/sweetalert2.scss";
-import {useSearchParams} from "react-router-dom"
+import { useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { GetMovies } from "../../../../redux/actions/Movies";
 
 const Movies = () => {
   const dispatch = useDispatch();
-  const [query, setQuery] = useSearchParams()
-  const [paginate, setPaginate] = useState({
-    page: query.get('page') ?? 1,
-    limit: 4
-  })
-  
+  const [query, setQuery] = useSearchParams();
+  const [params, setParams] = useState({
+    page: query.get("page") ?? 1,
+    search: query.get('search') ?? '',
+    limit: 5,
+  });
+
+  const searchHandler = async (e) => {
+    e.preventDefault()
+    const search = e.target.value
+    setParams((prevState) => ({
+      ...prevState,
+      search: search,
+    }))
+    query.set('search', search)
+    setQuery(query)
+  }
+
+  const auth = useSelector((state) => state.auth);
+  const [ refetch, setRefetch ] = useState(false)
   const [movieSchedule, setMovieSchedule] = useState({
     loading: false,
     results: {
-      data: []
-  }
+      data: [],
+    },
   });
-  const [addQuery, setAddQuery] = useState({
-    title: "",
-    sortBy: "",
-    orderBy: "",
-  })
+
+  const [formEditData, setFormEditData] = useState({});
+  const [formAddData, setFormAddData] = useState({});
+  const formData = new FormData();
+  formData.append("title", formEditData.title || formAddData.title);
+  formData.append("genre", formEditData.genre || formAddData.genre);
+  formData.append(
+    "durationHours",
+    formEditData.durationHours || formAddData.durationHours
+  );
+  formData.append(
+    "durationMinute",
+    formEditData.durationMinute || formAddData.durationMinute
+  );
+  formData.append("rating", formEditData.rating || formAddData.rating);
+  formData.append("director", formEditData.director || formAddData.director);
+  formData.append("writer", formEditData.writer || formAddData.writer);
+  formData.append(
+    "releaseDate",
+    formEditData.releaseDate || formAddData.releaseDate
+  );
+  formData.append("cast", formEditData.cast || formAddData.cast);
+  formData.append(
+    "description",
+    formEditData.description || formAddData.description
+  );
+  formData.append("cover", formEditData.cover || formAddData.cover);
 
 
-  const [refetch, setRefetch] = useState(false);
   useEffect(() => {
-    const { title, sortBy, orderBy } = query
     setMovieSchedule((prevState) => ({
-        ...prevState,
-        loading: true
-    }))
+      ...prevState,
+      loading: true,
+    }));
     axios({
-        method: 'GET',
-        url: `http://localhost:3006/api/v1/movies
-        ${title ? `?title=${title}` : ''}
-        ${sortBy ? `?sortBy=${sortBy}` : ''}
-        ${orderBy ? `&orderBy=${orderBy}` : ''}`,
-    }).then((res) => {
-        // console.log()
-        setMovieSchedule({
-            loading: false,
-            results: res.data
-        })
+      method: "GET",
+      url: `http://localhost:3006/api/v1/movies`,
     })
-        .catch((err) => {
-            console.log(err)
-        })
-  }, [refetch, query])
-  const [formEditData, setFormEditData] = useState({})
-  const [formAddData, setFormAddData] = useState({
-    title: "",
-    categoryID: "",
-    durationHours: "",
-    durationMinute: "",
-    director: "",
-    releaseDate: "",
-    cast: "",
-    description: "",
-    cover: "",
-  });
+      .then((res) => {
+        setMovieSchedule({
+          loading: false,
+          results: res.data,
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }, [,movieSchedule]);
 
-  
   useEffect(() => {
-    dispatch(GetMovies(paginate))
-  }, [refetch, paginate]);
-  const {data, error, loading} = useSelector((state) => state.movies);
-  let totalPage = Array(data.totalPage).fill() ?? []
-  // if(loading) {
-  //   return <div>loading...</div>
-  // }
-  // if(error) {
-  //  return  <div>error</div>
-  // }
-  const handlePaginate = (page)=> {
-    setPaginate((prevState)=>({...prevState, page}))
-    query.set('page', page)
-    setQuery(query)
-  }
+    dispatch(GetMovies(params));
+  }, [refetch, params]);
+  const { data, error, loading } = useSelector((state) => state.movies);
+  let totalPage = Array(data.totalPage).fill() ?? [];
+  const handlePaginate = (page) => {
+    setParams((prevState) => ({ ...prevState, page }));
+    query.set("page", page);
+    setQuery(query);
+  };
 
   //add
   const handleAddMovie = async (e) => {
     e.preventDefault();
     try {
+      console.log(formData.get("title"));
+      console.log(formData.get("genre"));
+      console.log(formData.get("releaseDate"));
       const result = await axios({
         method: "POST",
-        data: formAddData,
+        data: formData,
         url: "http://localhost:3006/api/v1/movies",
+        headers: {
+          Authorization: auth.data.token,
+        },
       });
-      if (result.data.status === 200) {
-        alert("Successfully Added");
+      if (result) {
+        Swal.fire({
+          position: 'center',
+          icon: 'success',
+          title: 'Successfully added',
+          showConfirmButton: false,
+          timer: 1500
+        })
         setRefetch(!refetch);
-      } else {
-        alert("Failed, Try Again");
       }
     } catch (error) {
       alert(error.response.data.message);
@@ -121,12 +143,11 @@ const Movies = () => {
     swalWithBootstrapButtons
       .fire({
         title: "Are you sure?",
-        text: "You will delete this data!",
-        icon: "warning",
+        text: "",
+        icon: "",
         showCancelButton: true,
         confirmButtonText: "YES, DELETE IT",
         cancelButtonText: "NO, CANCEL",
-        reverseButtons: true,
       })
       .then((result) => {
         if (result.isConfirmed) {
@@ -136,7 +157,7 @@ const Movies = () => {
           });
           swalWithBootstrapButtons.fire(
             "Deleted!",
-            "Your file has been deleted.",
+            "Your data has been deleted.",
             "success"
           );
           setRefetch(!refetch);
@@ -151,7 +172,7 @@ const Movies = () => {
   const handleEdit = (prevData) => {
     setFormEditData({
       ...prevData,
-      releaseDate: moment(prevData.releaseDate).format("YYYY-MM-DD"),
+      releaseDate: moment(prevData.releaseDate).format("DD-MM-YYYY"),
     });
   };
   const handleUpdateMovie = async (e) => {
@@ -159,11 +180,20 @@ const Movies = () => {
     try {
       const result = await axios({
         method: "PATCH",
-        data: formEditData,
-        url: `http://localhost:3006/api/v1/movies/${formEditData.movieID}/`,
+        data: formData,
+        url: `http://localhost:3006/api/v1/movies/${formEditData.movieID}`,
+        headers: {
+          Authorization: auth.data.token,
+        },
       });
-      if (result.data.status === 200) {
-        alert("Successfully Added");
+      if (result) {
+        Swal.fire({
+          position: 'center',
+          icon: 'success',
+          title: 'Successfully updated',
+          showConfirmButton: false,
+          timer: 1500
+        })
         setRefetch(!refetch);
       } else {
         alert("Failed, Try Again");
@@ -174,8 +204,6 @@ const Movies = () => {
     }
   };
 
-  
-
   const Loading = () => {
     <div>Loading...</div>;
   };
@@ -184,18 +212,23 @@ const Movies = () => {
       <hr />
       <div className="top">
         <div className="search">
-          <input type="text" placeholder="Search..." onChange={(e) => {
-            setAddQuery(prevData => ({
-              ...prevData,
-              title: e.target.value
-            }))
-          }}/>
+          <input
+            type="text"
+            placeholder="Search..."
+            onChange={(e) => searchHandler(e)}
+          />
           <SearchOutlinedIcon className="icon" />
         </div>
         <select class="select">
-          <option selected className="option">Order By</option>
-          <option value="asc" className="option">ASC</option>
-          <option value="desc" className="option">DESC</option>
+          <option selected className="option">
+            Order By
+          </option>
+          <option value="asc" className="option">
+            ASC
+          </option>
+          <option value="desc" className="option">
+            DESC
+          </option>
         </select>
       </div>
       <div className="center">
@@ -213,60 +246,72 @@ const Movies = () => {
               <th>Title</th>
               <th>Genre</th>
               <th>Director</th>
+              <th>Writer</th>
+              <th>Rating</th>
               <th>Release Date</th>
-              <th colSpan="2" className="text-center">
-                Duration
-              </th>
+              <th>Duration</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-          {!data.results.length ? (
-            <Loading />
-          ) : (
-            data.results.map((movie, index) => {
-              return (
+            {!data?.results?.length ? (
+              <Loading />
+            ) : (
+              data?.results?.map((movie, index) => {
+                return (
                   <tr key={index}>
                     <td>{movie.title}</td>
-                    <td>{movie.categoryName}</td>
+                    <td>{movie.genre}</td>
                     <td>{movie.director}</td>
-                    <td>{movie.releaseDate}</td>
-                    <td style={{textAlign:'center'}}>{movie.durationHours} hours</td>
-                    <td style={{textAlign: 'center'}}>{movie.durationMinute} minute</td>
+                    <td>{movie.writer}</td>
+                    <td>{movie.rating}<StarIcon style={{fontSize: '15px', color: 'darkorange'}}/></td>
+                    <td>{moment(movie.releaseDate).format('DD MMM YYYY')}</td>
+                    <td>{movie.durationHours} hour {movie.durationMinute} minute</td>
                     <td className="icon-button">
-                      <button onClick={() => handleEdit(movie)} data-bs-toggle="modal" data-bs-target="#editMovie"><EditIcon className="icon" /></button>
-                      <button onClick={() => handleDelete(movie.movieID)}><DeleteOutlineIcon className="icon" />
+                      <button
+                        onClick={() => handleEdit(movie)}
+                        data-bs-toggle="modal"
+                        data-bs-target="#editMovie"
+                      >
+                        <EditIcon className="icon" />
+                      </button>
+                      <button onClick={() => handleDelete(movie.movieID)}>
+                        <DeleteOutlineIcon className="icon" />
                       </button>
                     </td>
                   </tr>
-              );
-            })
-          )}
+                );
+              })
+            )}
           </tbody>
         </table>
 
         {/* PAGINATION */}
         <div aria-label="Page navigation">
           <ul className="pagination">
-          <li className="page-item">
-            <a className="page-link" aria-label="Previous">
-              <span aria-hidden="true">&laquo;</span>
-            </a>
-          </li>
-            {totalPage.map((item,index) =>{
-              // let page = parseInt(paginate.page)
-              return <li className={`page-item`}>
-              <button className="page-link" onClick={()=> handlePaginate(index+1)}>
-                <span aria-hidden="true">{index+1}</span>
-              </button>
+            <li className="page-item">
+              <a className="page-link" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
             </li>
+            {totalPage.map((item, index) => {
+              // let page = parseInt(paginate.page)
+              return (
+                <li className={`page-item`}>
+                  <button
+                    className="page-link"
+                    onClick={() => handlePaginate(index + 1)}
+                  >
+                    <span aria-hidden="true">{index + 1}</span>
+                  </button>
+                </li>
+              );
             })}
             <li className="page-item">
               <a className="page-link" aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
               </a>
             </li>
-
           </ul>
         </div>
       </div>
@@ -308,24 +353,19 @@ const Movies = () => {
                   />
                 </div>
                 <div className="mb-3">
-                  <label className="form-label">Category</label>
-                  {/* <select className="form-select" aria-label="Default select example">
-                      <option selected>Open this select menu</option>
-                      <option value="1">One</option>
-                      <option value="2">Two</option>
-                      <option value="3">Three</option>
-                    </select> */}
+                  <label className="form-label">Genre</label>
                   <input
                     type="text"
                     className="form-control"
                     onChange={(e) => {
                       setFormAddData((prevState) => ({
                         ...prevState,
-                        categoryID: e.target.value,
+                        genre: e.target.value,
                       }));
                     }}
                   />
                 </div>
+                <div className="d-flex justify-content-between">
                 <div className="mb-3">
                   <label htmlFor="exampleInputPassword1" className="form-label">
                     Duration Hours
@@ -356,6 +396,22 @@ const Movies = () => {
                     }}
                   />
                 </div>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="exampleInputPassword1" className="form-label">
+                    Rating
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    onChange={(e) => {
+                      setFormAddData((prevState) => ({
+                        ...prevState,
+                        rating: e.target.value,
+                      }));
+                    }}
+                  />
+                </div>
                 <div className="mb-3">
                   <label htmlFor="exampleInputPassword1" className="form-label">
                     Director
@@ -373,10 +429,25 @@ const Movies = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="exampleInputPassword1" className="form-label">
-                    Release Date
+                    Writer
                   </label>
                   <input
                     type="text"
+                    className="form-control"
+                    onChange={(e) => {
+                      setFormAddData((prevState) => ({
+                        ...prevState,
+                        writer: e.target.value,
+                      }));
+                    }}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="exampleInputPassword1" className="form-label">
+                    Release Date
+                  </label>
+                  <input
+                    type="date"
                     className="form-control"
                     onChange={(e) => {
                       setFormAddData((prevState) => ({
@@ -415,17 +486,15 @@ const Movies = () => {
                     }}
                   />
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="exampleInputPassword1" className="form-label">
-                    Cover
-                  </label>
-                  <textarea
-                    rows={5}
-                    className="form-control"
+                <div class="mb-3">
+                  <input
+                    class="form-control"
+                    type="file"
+                    id="formFile"
                     onChange={(e) => {
                       setFormAddData((prevState) => ({
                         ...prevState,
-                        cover: e.target.value,
+                        cover: e.target.files[0],
                       }));
                     }}
                   />
@@ -494,17 +563,17 @@ const Movies = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="exampleInputPassword1" className="form-label">
-                    Category
+                    Genre
                   </label>
                   <input
                     type="text"
                     className="form-control"
                     id="exampleInputPassword1"
-                    value={formEditData.categoryID}
+                    value={formEditData.genre}
                     onChange={(e) => {
                       setFormEditData((prevState) => ({
                         ...prevState,
-                        categoryID: e.target.value,
+                        genre: e.target.value,
                       }));
                     }}
                   />
@@ -545,6 +614,23 @@ const Movies = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="exampleInputPassword1" className="form-label">
+                    Rating
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    id="exampleInputPassword1"
+                    value={formEditData.rating}
+                    onChange={(e) => {
+                      setFormEditData((prevState) => ({
+                        ...prevState,
+                        rating: e.target.value,
+                      }));
+                    }}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="exampleInputPassword1" className="form-label">
                     Director
                   </label>
                   <input
@@ -562,10 +648,27 @@ const Movies = () => {
                 </div>
                 <div className="mb-3">
                   <label htmlFor="exampleInputPassword1" className="form-label">
-                    Release Date
+                    Writer
                   </label>
                   <input
                     type="text"
+                    className="form-control"
+                    id="exampleInputPassword1"
+                    value={formEditData.writer}
+                    onChange={(e) => {
+                      setFormEditData((prevState) => ({
+                        ...prevState,
+                        writer: e.target.value,
+                      }));
+                    }}
+                  />
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="exampleInputPassword1" className="form-label">
+                    Release Date
+                  </label>
+                  <input
+                    type="date"
                     className="form-control"
                     id="exampleInputPassword1"
                     value={formEditData.releaseDate}
@@ -610,19 +713,15 @@ const Movies = () => {
                     }}
                   />
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="exampleInputPassword1" className="form-label">
-                    Cover
-                  </label>
-                  <textarea
-                    rows={5}
-                    className="form-control"
-                    id="exampleInputPassword1"
-                    value={formEditData.cover}
+                <div class="mb-3">
+                  <input
+                    class="form-control"
+                    type="file"
+                    id="formFile"
                     onChange={(e) => {
-                      setFormEditData((prevState) => ({
+                      setFormAddData((prevState) => ({
                         ...prevState,
-                        cover: e.target.value,
+                        cover: e.target.files[0],
                       }));
                     }}
                   />
